@@ -15,6 +15,7 @@ import (
 	"tomasweigenast.com/url-shortener/database"
 	"tomasweigenast.com/url-shortener/server/endpoints"
 	"tomasweigenast.com/url-shortener/server/middleware"
+	"tomasweigenast.com/url-shortener/taskmanager"
 )
 
 var mux *http.ServeMux
@@ -30,7 +31,8 @@ func Run() {
 	mux.Handle("GET /account/", middleware.Chain(endpoints.GetAccount, middleware.RequestID, middleware.Logging, middleware.Auth))
 	mux.Handle("GET /account/links", middleware.Chain(endpoints.GetLinks, middleware.RequestID, middleware.Logging, middleware.Auth))
 	mux.Handle("PUT /account/links", middleware.Chain(endpoints.CreateLink, middleware.RequestID, middleware.Logging, middleware.Auth))
-	mux.Handle("DELETE /account/links", middleware.Chain(endpoints.DeleteLink, middleware.RequestID, middleware.Logging, middleware.Auth))
+	mux.Handle("GET /account/links/{id}", middleware.Chain(endpoints.GetLink, middleware.RequestID, middleware.Logging, middleware.Auth))
+	mux.Handle("DELETE /account/links/{id}", middleware.Chain(endpoints.DeleteLink, middleware.RequestID, middleware.Logging, middleware.Auth))
 	mux.Handle("GET /{url}", middleware.Chain(endpoints.Url, middleware.RequestID, middleware.Logging))
 
 	server = &http.Server{
@@ -44,6 +46,7 @@ func Run() {
 
 	log.Println("Starting server..")
 	database.ConnectDatabase()
+	taskmanager.Start()
 
 	go func() {
 		if err := server.ListenAndServe(); err != nil {
@@ -60,6 +63,7 @@ func Run() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer func() {
 		database.CloseDatabase()
+		taskmanager.Stop()
 		cancel()
 	}()
 

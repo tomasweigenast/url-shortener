@@ -67,6 +67,16 @@ func (*linksService) CreateLink(ctx context.Context, uid uint32, model models.Cr
 	return mapper.MapUrl(url), nil
 }
 
+func (ls *linksService) DeleteLink(ctx context.Context, id, uid uint32) error {
+	path, err := database.DeleteUrl(ctx, id, uid)
+	if err != nil {
+		return err
+	}
+
+	ls.cache.Delete(path)
+	return nil
+}
+
 // FetchUrl returns the redirect url for the given path
 func (ls *linksService) FetchUrl(ctx context.Context, path string) (string, error) {
 	// fetch from cache first

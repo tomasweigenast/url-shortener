@@ -3,6 +3,7 @@ package endpoints
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"tomasweigenast.com/url-shortener/models"
 	"tomasweigenast.com/url-shortener/server/middleware"
@@ -11,7 +12,6 @@ import (
 )
 
 func GetLinks(w http.ResponseWriter, req *http.Request) {
-
 	uid := middleware.GetUid(req)
 
 	links, err := services.LinksService().ListLinks(req.Context(), uid)
@@ -46,15 +46,35 @@ func CreateLink(w http.ResponseWriter, req *http.Request) {
 }
 
 func DeleteLink(w http.ResponseWriter, req *http.Request) {
+	uid := middleware.GetUid(req)
+	rawId := req.PathValue("id")
 
-	uid := req.Context().Value(middleware.ContextUserKey).(models.User).Id
+	id, err := strconv.ParseInt(rawId, 10, 64)
+	if err != nil {
+		response.Failed(w, models.StringError{Reason: "wrong-id"}, http.StatusBadRequest)
+		return
+	}
 
 	// fetch from users service
-	user, err := services.UsersService().GetUser(req.Context(), services.GetUserBy{Id: uid})
+	err = services.LinksService().DeleteLink(req.Context(), uint32(id), uid)
 	if err != nil {
 		response.Failed(w, models.StringError{Reason: err.Error()}, http.StatusNotFound)
 		return
 	}
 
-	response.Successful(w, user)
+	response.Successful[any](w)
+}
+
+func GetLink(w http.ResponseWriter, req *http.Request) {
+	uid := middleware.GetUid(req)
+	rawId := req.PathValue("id")
+
+	id, err := strconv.ParseInt(rawId, 10, 64)
+	if err != nil {
+		response.Failed(w, models.StringError{Reason: "wrong-id"}, http.StatusBadRequest)
+		return
+	}
+
+	_ = id
+	_ = uid
 }

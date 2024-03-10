@@ -60,6 +60,17 @@ func InsertUrl(ctx context.Context, link *entities.Url) error {
 	return nil
 }
 
+func DeleteUrl(ctx context.Context, id, uid uint32) (urlPath string, err error) {
+	row := connection.QueryRow(ctx, queryDeleteLink, id, uid)
+
+	err = row.Scan(&urlPath)
+	if err != nil {
+		return "", utils.TransformPgError(err)
+	}
+
+	return
+}
+
 // GetUrlByPath retrieves minimal information needed to redirect. It only returns the id and the link itself
 func GetUrlByPath(ctx context.Context, path string) (*entities.Url, error) {
 	var link entities.Url

@@ -34,6 +34,30 @@ const (
 		is_deleted BOOLEAN NOT NULL DEFAULT false,
 		CONSTRAINT fk_urls_uid FOREIGN KEY (uid) REFERENCES users(id)
 	);
+
+	CREATE TABLE IF NOT EXISTS urls_metadata(
+		id BIGINT PRIMARY KEY,
+		hits BIGINT NOT NULL DEFAULT 0,
+		last_update TIMESTAMP NOT NULL DEFAULT (now() at time zone 'utc'),
+		CONSTRAINT fk_urls_metadata_id FOREIGN KEY (id) REFERENCES urls(id)
+	);
+
+	CREATE TABLE IF NOT EXISTS urls_hits(
+		id BIGINT PRIMARY KEY,
+		url_id BIGINT NOT NULL,
+		hit_at TIMESTAMP NOT NULL,
+		from_ip TEXT NOT NULL,
+		from_cache BOOLEAN NOT NULL,
+		http_method TEXT NOT NULL,
+		proto TEXT NOT NULL,
+		query_params TEXT[],
+		headers TEXT[],
+		user_agent TEXT,
+		cookies JSONB,
+		CONSTRAINT fk_urls_hits_url_id FOREIGN KEY (url_id) REFERENCES urls(id)
+	);
+
+	CREATE INDEX IF NOT EXISTS idx_urls_hits_hit_at ON urls_hits(hit_at);
 	
 	CREATE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE is_deleted = false;
 
@@ -54,4 +78,5 @@ const (
 	queryInsertUrl     string = `INSERT INTO urls(id, uid, link, url_path, name, valid_until) VALUES ($1, $2, $3, $4, $5, $6);`
 	queryGetLinkByPath string = `SELECT id, link FROM urls WHERE url_path = $1 LIMIT 1;`
 	queryGetUserLinks  string = `SELECT * FROM urls WHERE uid = $1 AND is_deleted = false LIMIT 50;`
+	queryDeleteLink    string = `UPDATE urls SET is_deleted = true WHERE id = $1 AND uid = $2 AND is_deleted = false RETURNING url_path;`
 )
