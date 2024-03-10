@@ -5,10 +5,13 @@ import (
 	"log"
 	"os"
 
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
+	"github.com/riverqueue/river/rivermigrate"
 )
 
-var connection *pgx.Conn
+// var connection *pgx.Conn
+var pool *pgxpool.Pool
 
 func ConnectDatabase() {
 	dbUrl, ok := os.LookupEnv("DATABASE_URL")
@@ -18,13 +21,14 @@ func ConnectDatabase() {
 	}
 
 	var err error
-	connection, err = pgx.Connect(context.Background(), dbUrl)
+	pool, err = pgxpool.New(context.Background(), dbUrl)
+	// connection, err = pgx.Connect(context.Background(), dbUrl)
 	if err != nil {
 		log.Fatalf("could not connect to database: %s", err)
 	}
 
 	// try connection
-	err = connection.Ping(context.Background())
+	err = pool.Ping(context.Background())
 	if err != nil {
 		log.Fatalf("could not reach database: %s", err)
 	}
@@ -33,19 +37,25 @@ func ConnectDatabase() {
 }
 
 func CloseDatabase() {
-	if connection != nil {
-		connection.Close(context.Background())
-		connection = nil
+	if pool != nil {
+		pool.Close()
+		pool = nil
 	}
 }
 
-func GetConnection() *pgx.Conn {
-	return connection
+func Pool() *pgxpool.Pool {
+	return pool
 }
 
 func prepareDb() {
-	_, err := connection.Exec(context.Background(), queryCreateTables)
+	_, err := pool.Exec(context.Background(), queryCreateTables)
 	if err != nil {
 		log.Fatalf("unable to execute create table script, error: %s", err)
+	}
+
+	migrator := rivermigrate.New(riverpgxv5.New(pool), nil)
+	_, err = migrator.Migrate(context.Background(), rivermigrate.DirectionUp, &rivermigrate.MigrateOpts{})
+	if err != nil {
+		log.Fatalf("unable to migrate db for river: %s", err)
 	}
 }

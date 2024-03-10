@@ -75,8 +75,13 @@ const (
 
 	queryInsertSession string = `INSERT INTO sessions(id, uid, refresh_token, expires_at) VALUES ($1, $2, $3, $4);`
 
-	queryInsertUrl     string = `INSERT INTO urls(id, uid, link, url_path, name, valid_until) VALUES ($1, $2, $3, $4, $5, $6);`
+	queryInsertUrl         string = `INSERT INTO urls(id, uid, link, url_path, name, valid_until) VALUES ($1, $2, $3, $4, $5, $6)`
+	queryInsertUrlMetadata string = `INSERT INTO urls_metadata(id) VALUES ($1);`
+
 	queryGetLinkByPath string = `SELECT id, link FROM urls WHERE url_path = $1 LIMIT 1;`
 	queryGetUserLinks  string = `SELECT * FROM urls WHERE uid = $1 AND is_deleted = false LIMIT 50;`
 	queryDeleteLink    string = `UPDATE urls SET is_deleted = true WHERE id = $1 AND uid = $2 AND is_deleted = false RETURNING url_path;`
+
+	queryInsertUrlHit      string = `INSERT INTO urls_hits VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`
+	queryUpdateUrlMetadata string = `UPDATE urls_metadata SET hits = hits+1, last_update = (now() at time zone 'utc') WHERE id = $1;`
 )

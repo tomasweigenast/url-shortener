@@ -3,13 +3,17 @@ package services
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
+	"net/http"
+	"strings"
 	"time"
 
 	"tomasweigenast.com/url-shortener/database"
 	"tomasweigenast.com/url-shortener/entities"
 	"tomasweigenast.com/url-shortener/mapper"
 	"tomasweigenast.com/url-shortener/models"
+	"tomasweigenast.com/url-shortener/taskmanager"
 	"tomasweigenast.com/url-shortener/utils"
 )
 
@@ -77,21 +81,69 @@ func (ls *linksService) DeleteLink(ctx context.Context, id, uid uint32) error {
 	return nil
 }
 
+func (ls *linksService) RegisterHit(ctx context.Context, linkId uint32, req *http.Request) error {
+	queryParams := []string{}
+	headers := []string{}
+	cookies := map[string]any{}
+	userAgent := req.UserAgent()
+	for k, val := range req.URL.Query() {
+		queryParams = append(queryParams, fmt.Sprintf("%s:%s", k, strings.Join(val, ",")))
+	}
+
+	for k, val := range req.Header {
+		headers = append(headers, fmt.Sprintf("%s:%s", k, strings.Join(val, ",")))
+	}
+
+	for _, cookie := range req.Cookies() {
+		cookies[cookie.Name] = map[string]any{
+			"path":      cookie.Path,
+			"expires":   cookie.Expires,
+			"domain":    cookie.Domain,
+			"max_age":   cookie.MaxAge,
+			"same_site": cookie.SameSite,
+			"http_only": cookie.HttpOnly,
+			"secure":    cookie.Secure,
+			"value":     cookie.Value,
+		}
+	}
+
+	hit := entities.UrlHit{
+		Id:          utils.RandomId(),
+		UrlId:       linkId,
+		HitAt:       time.Now(),
+		FromIP:      req.RemoteAddr,
+		FromCache:   false,
+		HttpMethod:  req.Method,
+		Proto:       req.Proto,
+		QueryParams: queryParams,
+		Headers:     headers,
+		UserAgent: sql.Null[string]{
+			V:     userAgent,
+			Valid: len(userAgent) > 0,
+		},
+		Cookies: cookies,
+	}
+
+	taskmanager.EnqueueUrlHit(hit)
+	return nil
+}
+
 // FetchUrl returns the redirect url for the given path
-func (ls *linksService) FetchUrl(ctx context.Context, path string) (string, error) {
+func (ls *linksService) FetchUrl(ctx context.Context, path string) (url string, id uint32, err error) {
 	// fetch from cache first
-	url := ls.cache.Get(path)
-	if url != nil {
+	url_data := ls.cache.Get(path)
+	if url_data != nil {
 		log.Println("cache hit:", path)
-		return url.(string), nil
+		data := url_data.(*entities.Url)
+		return data.Link, data.Id, nil
 	}
 
 	urlData, err := database.GetUrlByPath(ctx, path)
 	if err != nil {
-		return "", err
+		return "", 0, err
 	}
 
-	ls.cache.Put(path, urlData.Link)
+	ls.cache.Put(path, urlData)
 
-	return urlData.Link, nil
+	return urlData.Link, urlData.Id, nil
 }

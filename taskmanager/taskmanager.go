@@ -1,16 +1,13 @@
 package taskmanager
 
 import (
+	"context"
 	"log"
-	"os"
 
-	"github.com/gocraft/work"
-	"github.com/gomodule/redigo/redis"
-)
-
-var (
-	enqueuer *work.Enqueuer
-	pool     *work.WorkerPool
+	"github.com/jackc/pgx/v5"
+	"github.com/riverqueue/river"
+	"github.com/riverqueue/river/riverdriver/riverpgxv5"
+	"tomasweigenast.com/url-shortener/database"
 )
 
 const (
@@ -18,38 +15,32 @@ const (
 	report_url_hit_jobname = "url_hit"
 )
 
+var riverClient *river.Client[pgx.Tx]
+
 func Start() {
-	redisUrl, ok := os.LookupEnv("REDIS_URL")
-	if !ok {
-		log.Fatalf("REDIS_URL environment variable not found")
-	}
+	workers := river.NewWorkers()
+	river.AddWorker(workers, &PushHitWorker{})
 
-	_ = redisUrl
-
-	var redisPool = &redis.Pool{
-		MaxActive: 5,
-		MaxIdle:   5,
-		Wait:      true,
-		Dial: func() (redis.Conn, error) {
-			return redis.DialURL(redisUrl)
+	var err error
+	riverClient, err = river.NewClient(riverpgxv5.New(database.Pool()), &river.Config{
+		Queues: map[string]river.QueueConfig{
+			river.QueueDefault: {
+				MaxWorkers: 100,
+			},
 		},
+		Workers: workers,
+	})
+
+	if err != nil {
+		log.Fatalf("unable to start river client: %s", err)
 	}
 
-	enqueuer = work.NewEnqueuer(namespace, redisPool)
-	pool = work.NewWorkerPool(context{}, 10, namespace, redisPool)
-	pool.JobWithOptions(report_url_hit_jobname, work.JobOptions{
-		Priority: 1,
-		SkipDead: false,
-		MaxFails: 5,
-	}, (*context).urlhit)
-	pool.Start()
+	if err := riverClient.Start(context.Background()); err != nil {
+		log.Printf("unable to execute job: %s", err)
+	}
 }
 
 func Stop() {
-	pool.Stop()
-	enqueuer.Pool.Close()
-}
-
-type context struct {
-	metadata map[string]any
+	riverClient.Stop(context.TODO())
+	riverClient = nil
 }

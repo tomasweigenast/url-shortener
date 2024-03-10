@@ -62,8 +62,8 @@ func Run() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer func() {
-		database.CloseDatabase()
 		taskmanager.Stop()
+		database.CloseDatabase()
 		cancel()
 	}()
 
