@@ -75,6 +75,11 @@ func GetLink(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	_ = id
-	_ = uid
+	data, err := services.LinksService().GetLink(req.Context(), uint32(id), uid)
+	if err != nil {
+		response.Failed(w, models.StringError{Reason: err.Error()}, http.StatusBadRequest)
+		return
+	}
+
+	response.Successful(w, data)
 }

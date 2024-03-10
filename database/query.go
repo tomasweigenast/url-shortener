@@ -125,3 +125,9 @@ func InsertUrlHit(ctx context.Context, hit *entities.UrlHit) (err error) {
 
 	return nil
 }
+
+func GetLinkData(ctx context.Context, id, uid uint32) (*entities.UrlData, error) {
+	data := entities.UrlData{}
+	err := pgxscan.Get(ctx, pool, &data, querySelectUrlMetadata, id, uid)
+	return &data, utils.TransformPgError(err)
+}

@@ -41,3 +41,26 @@ func MapUrl(e *entities.Url) *models.Url {
 		RedirectTo: e.Link,
 	}
 }
+
+func MapUrlData(e *entities.UrlData) *models.UrlMetadata {
+	latestHits := make([]models.UrlHit, len(e.LatestHits))
+	for i, hit := range e.LatestHits {
+		latestHits[i] = models.UrlHit{
+			FromIP:          hit.FromIP,
+			DateTime:        hit.HitAt,
+			HttpMethod:      hit.HttpMethod,
+			HttpProtocol:    hit.Proto,
+			UserAgent:       hit.UserAgent.V,
+			QueryParameters: hit.QueryParams,
+			Headers:         hit.Headers,
+			Cookies:         hit.Cookies,
+		}
+	}
+
+	return &models.UrlMetadata{
+		Url:        *MapUrl(&e.Url),
+		Hits:       e.Hits,
+		LastHitAt:  e.LastHitAt,
+		LatestHits: latestHits,
+	}
+}

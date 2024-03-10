@@ -81,6 +81,15 @@ func (ls *linksService) DeleteLink(ctx context.Context, id, uid uint32) error {
 	return nil
 }
 
+func (*linksService) GetLink(ctx context.Context, id, uid uint32) (*models.UrlMetadata, error) {
+	data, err := database.GetLinkData(ctx, id, uid)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapper.MapUrlData(data), nil
+}
+
 func (ls *linksService) RegisterHit(ctx context.Context, linkId uint32, req *http.Request) error {
 	queryParams := []string{}
 	headers := []string{}

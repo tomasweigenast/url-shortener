@@ -84,4 +84,14 @@ const (
 
 	queryInsertUrlHit      string = `INSERT INTO urls_hits VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11);`
 	queryUpdateUrlMetadata string = `UPDATE urls_metadata SET hits = hits+1, last_update = (now() at time zone 'utc') WHERE id = $1;`
+
+	querySelectUrlMetadata string = `SELECT u.*,
+		COALESCE(um.hits, 0) AS hits,
+		COALESCE(um.last_update, CURRENT_TIMESTAMP) AS last_hit_at,
+		JSON_AGG(uh) AS latest_hits
+	FROM urls u
+	LEFT JOIN urls_metadata um ON u.id = um.id
+	LEFT JOIN (SELECT * FROM urls_hits ORDER BY hit_at DESC LIMIT 20) uh ON u.id = uh.url_id
+	WHERE u.id = $1 AND u.uid = $2 AND u.is_deleted = FALSE
+	GROUP BY u.id, um.hits, um.last_update`
 )
