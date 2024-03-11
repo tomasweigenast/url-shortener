@@ -126,11 +126,8 @@ func (ls *linksService) RegisterHit(ctx context.Context, linkId uint32, req *htt
 		Proto:       req.Proto,
 		QueryParams: queryParams,
 		Headers:     headers,
-		UserAgent: sql.Null[string]{
-			V:     userAgent,
-			Valid: len(userAgent) > 0,
-		},
-		Cookies: cookies,
+		UserAgent:   userAgent,
+		Cookies:     cookies,
 	}
 
 	taskmanager.EnqueueUrlHit(hit)

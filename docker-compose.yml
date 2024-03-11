@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:latest
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://root:root@db:5432/postgres
+      PORT: 9898
+      JWT_PASS: test123
+      JWT_TTL: 604800
+      BASE_URL: http://localhost:9898/
+    ports:
+      - "9898:9898"
+
+volumes:
+  postgres_data:

@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"tomasweigenast.com/url-shortener/entities"
@@ -129,5 +130,11 @@ func InsertUrlHit(ctx context.Context, hit *entities.UrlHit) (err error) {
 func GetLinkData(ctx context.Context, id, uid uint32) (*entities.UrlData, error) {
 	data := entities.UrlData{}
 	err := pgxscan.Get(ctx, pool, &data, querySelectUrlMetadata, id, uid)
+	if err != nil {
+		return nil, utils.TransformPgError(err)
+	}
+
+	fmt.Println(data)
+
 	return &data, utils.TransformPgError(err)
 }

@@ -88,7 +88,7 @@ const (
 	querySelectUrlMetadata string = `SELECT u.*,
 		COALESCE(um.hits, 0) AS hits,
 		COALESCE(um.last_update, CURRENT_TIMESTAMP) AS last_hit_at,
-		JSON_AGG(uh) AS latest_hits
+		JSONB_AGG(jsonb_set(to_jsonb(uh), '{hit_at}', to_jsonb(to_char(uh.hit_at, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')), true)) AS latest_hits
 	FROM urls u
 	LEFT JOIN urls_metadata um ON u.id = um.id
 	LEFT JOIN (SELECT * FROM urls_hits ORDER BY hit_at DESC LIMIT 20) uh ON u.id = uh.url_id

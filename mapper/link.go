@@ -50,7 +50,7 @@ func MapUrlData(e *entities.UrlData) *models.UrlMetadata {
 			DateTime:        hit.HitAt,
 			HttpMethod:      hit.HttpMethod,
 			HttpProtocol:    hit.Proto,
-			UserAgent:       hit.UserAgent.V,
+			UserAgent:       hit.UserAgent,
 			QueryParameters: hit.QueryParams,
 			Headers:         hit.Headers,
 			Cookies:         hit.Cookies,

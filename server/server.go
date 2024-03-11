@@ -37,7 +37,7 @@ func Run() {
 
 	server = &http.Server{
 		Handler: mux,
-		Addr:    fmt.Sprintf("127.0.0.1:%d", port),
+		Addr:    fmt.Sprintf(":%d", port),
 	}
 
 	done := make(chan os.Signal, 1)

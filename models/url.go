@@ -20,7 +20,7 @@ type UrlMetadata struct {
 
 type UrlHit struct {
 	DateTime        time.Time      `json:"dateTime"`
-	FromIP          string         `json:"fromIp"`
+	FromIP          string         `json:"fromIp,omitempty"`
 	HttpMethod      string         `json:"httpMethod"`
 	HttpProtocol    string         `json:"httpProtocol"`
 	UserAgent       string         `json:"userAgent"`
